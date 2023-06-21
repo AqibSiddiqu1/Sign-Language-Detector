@@ -4,46 +4,49 @@ import numpy as np
 import math 
 import time
 
-cap= cv2.VideoCapture(0)#id number for our web camp , here we are capturing the image
-detector = HandDetector(maxHands=1)#here we are using max hands 1 bcuz we want only 1 hand
-offset=20# we are using offset bcuz when we are cropping the image its going out of the box
-imgSize=300
-folder= "Data/Aqib"
-counter =0 
+cap = cv2.VideoCapture(0)  # Initialize video capture from default camera
+detector = HandDetector(maxHands=1)  # Initialize hand detector
+offset = 20  # Offset for cropping the hand region
+imgSize = 300  # Size of the output image
+folder = "Data/Aqib"  # Folder to store captured images
+counter = 0  # Counter for the number of images captured
 
 while True:
-    success, img= cap.read()
-    hands, img= detector.findHands(img)#here we are giving img to be detected  
-    if hands:#here we are cropping the image
-        hand=hands[0]#bcuz we have only have 1 hand thats we are intializing it with 0
-        x,y,w,h=hand['bbox']  # xaxis yaxis width and height bbox:bounding box
-        imgWhite=np.ones((imgSize,imgSize,3),np.uint8)*255#here we are creating a matrix using numpy (width,height)it will form a square .uint8 it means unsigned interger of 8 bit,we are multiplying it by 255 bcuz the image white is coming out to be black
-        imgCrop=img[y-offset:y+h+offset,x-offset:x+w+offset]#its a matrix thats why we are defining y is the starting height starting width x and ending width x+w
-        imgCropShape = imgCrop.shape
+    success, img = cap.read()  # Read a frame from the video capture
+    hands, img = detector.findHands(img)  # Detect hands in the frame
+    
+    if hands:
+        hand = hands[0]  # Get the first detected hand
+        x, y, w, h = hand['bbox']  # Get the bounding box coordinates of the hand
+        imgWhite = np.ones((imgSize, imgSize, 3), np.uint8) * 255  # Create a white image
         
-        aspectRatio=h/w  #if the value is 1 it means height is greater 
-        if aspectRatio>1: 
-            k=imgSize/h#here k is constant 
-            wCal=math.ceil(k*w)#its the width calculated,w is previous width,ceil fuction allows to round off the values (higher side)
-            imgResize=cv2.resize(imgCrop,(wCal,imgSize))
-            imgResizeShape = imgResize.shape
-            wGap = math.ceil((imgSize-wCal)/2)#wgap is the width gap to push the image to center in imgwhite
-            imgWhite[:,wGap:wCal+wGap] =imgResize #here we are putting the crop image on the white matrix 
-        else:
-            k=imgSize/w 
-            hCal=math.ceil(k*h)
-            imgResize=cv2.resize(imgCrop,(imgSize,hCal))
-            imgResizeShape = imgResize.shape
-            hGap = math.ceil((imgSize-hCal)/2)
-            imgWhite[hGap:hCal+hGap,:] =imgResize 
+        imgCrop = img[y - offset : y + h + offset, x - offset : x + w + offset]  # Crop the hand region
+        imgCropShape = imgCrop.shape  # Get the shape of the cropped image
         
-        cv2.imshow("ImageCrop", imgCrop)#it will form another window with cropped image
-        cv2.imshow("ImageWhite", imgWhite)
+        aspectRatio = h / w  # Calculate the aspect ratio of the hand
         
-
-    cv2.imshow("Image", img)# here wee are showing our image
-    key = cv2.waitKey(1)#it will give a 1 mili second delay 
-    if key == ord("s"):#s key for clicking
-        counter +=1# here we are calculating how many image we have clicked
-        cv2.imwrite(f'{folder}/Image_{time.time()}.jpg',imgWhite)#time.time will give a unique value
-        print(counter)
+        if aspectRatio > 1:  # If the aspect ratio is greater than 1, adjust the width
+            k = imgSize / h  # Calculate the scaling factor
+            wCal = math.ceil(k * w)  # Calculate the new width
+            imgResize = cv2.resize(imgCrop, (wCal, imgSize))  # Resize the cropped image
+            imgResizeShape = imgResize.shape  # Get the shape of the resized image
+            wGap = math.ceil((imgSize - wCal) / 2)  # Calculate the gap to center the image horizontally
+            imgWhite[:, wGap : wCal + wGap] = imgResize  # Place the resized image on the white background
+        else:  # If the aspect ratio is less than or equal to 1, adjust the height
+            k = imgSize / w  # Calculate the scaling factor
+            hCal = math.ceil(k * h)  # Calculate the new height
+            imgResize = cv2.resize(imgCrop, (imgSize, hCal))  # Resize the cropped image
+            imgResizeShape = imgResize.shape  # Get the shape of the resized image
+            hGap = math.ceil((imgSize - hCal) / 2)  # Calculate the gap to center the image vertically
+            imgWhite[hGap : hCal + hGap, :] = imgResize  # Place the resized image on the white background
+        
+        cv2.imshow("ImageCrop", imgCrop)  # Display the cropped image
+        cv2.imshow("ImageWhite", imgWhite)  # Display the final image with white background
+        
+    cv2.imshow("Image", img)  # Display the original image
+    key = cv2.waitKey(1)  # Wait for a key press
+    
+    if key == ord("s"):  # If 's' is pressed, capture the image
+        counter += 1  # Increment the counter
+        cv2.imwrite(f'{folder}/Image_{time.time()}.jpg', imgWhite)  # Save the image with a unique filename
+        print(counter)  # Print the number of captured images
